@@ -1,0 +1,144 @@
+#include <stdio.h>
+#include <stdlib.h>
+typedef struct
+{
+    unsigned n_rows;
+    unsigned n_cols;
+    unsigned n_nonzero;
+    unsigned *row_indices;
+    unsigned *col_indices;
+    double *values;
+} SpCoord;
+
+double *generate_random_vector(unsigned size)
+{
+    double *vector = (double *)malloc(size * sizeof(double));
+    if (!vector)
+        return NULL;
+    for (unsigned i = 0; i < size; i++)
+    {
+        vector[i] = (double)rand() / RAND_MAX;
+    }
+    return vector;
+}
+
+void *multiply_CSR_SpCoord(double *result, SpCoord *csr_matrix, double *vector)
+{
+    for (unsigned row = 0; row < csr_matrix->n_rows - 1; row++)
+    {
+        result[row] = 0.0;
+        for (unsigned idx = csr_matrix->row_indices[row]; idx < csr_matrix->row_indices[row + 1]; idx++)
+        {
+            unsigned col = csr_matrix->col_indices[idx];
+            double val = csr_matrix->values[idx];
+            result[row] += val * vector[col];
+        }
+    }
+}
+
+void *convert_to_CSR(SpCoord *matrix)
+{
+    int *row_ptr = (int *)calloc(matrix->n_rows + 1, sizeof(int));
+    if (!row_ptr)
+        return NULL;
+
+    // Count non-zeros per row
+    for (unsigned i = 0; i < matrix->n_nonzero; i++)
+    {
+        row_ptr[matrix->row_indices[i] + 1]++;
+    }
+
+    // Sums to get the offset values
+    for (int i = 0; i < matrix->n_rows; i++)
+    {
+        row_ptr[i + 1] += row_ptr[i];
+    }
+
+    free(matrix->row_indices);
+    matrix->n_rows = matrix->n_rows + 1;
+    matrix->row_indices = row_ptr;
+    // Now row_ptr[i] is the index in COO arrays where row i starts
+}
+int coo_less(SpCoord *p, unsigned a, unsigned b)
+{
+    unsigned ra = p->row_indices[a], rb = p->row_indices[b];
+    if (ra < rb)
+        return 1;
+    if (ra > rb)
+        return 0;
+    return p->col_indices[a] < p->col_indices[b];
+}
+
+void swap(SpCoord *p, unsigned a, unsigned b)
+{
+    unsigned i, j;
+    double x;
+    i = p->row_indices[a];
+    j = p->col_indices[a];
+    x = p->values[a];
+    p->row_indices[a] = p->row_indices[b];
+    p->col_indices[a] = p->col_indices[b];
+    p->values[a] = p->values[b];
+    p->row_indices[b] = i;
+    p->col_indices[b] = j;
+    p->values[b] = x;
+}
+
+/* Lexicographic quicksort by (row, col) */
+void coo_quicksort(SpCoord *p, unsigned base, unsigned n)
+{
+    unsigned lo, hi, left, right, mid;
+
+    if (n == 0)
+        return;
+    lo = base;
+    hi = lo + n - 1;
+    while (lo < hi)
+    {
+        mid = lo + ((hi - lo) >> 1);
+
+        if (coo_less(p, mid, lo))
+            swap(p, mid, lo);
+        if (coo_less(p, hi, mid))
+        {
+            swap(p, mid, hi);
+            if (coo_less(p, mid, lo))
+                swap(p, mid, lo);
+        }
+        left = lo + 1;
+        right = hi - 1;
+        do
+        {
+            while (coo_less(p, left, mid))
+                left++;
+            while (coo_less(p, mid, right))
+                right--;
+            if (left < right)
+            {
+                swap(p, left, right);
+                if (mid == left)
+                    mid = right;
+                else if (mid == right)
+                    mid = left;
+                left++;
+                right--;
+            }
+            else if (left == right)
+            {
+                left++;
+                right--;
+                break;
+            }
+        } while (left <= right);
+        if (right - lo > hi - left)
+        {
+            coo_quicksort(p, left, hi - left + 1);
+            hi = right;
+        }
+        else
+        {
+            coo_quicksort(p, lo, right - lo + 1);
+            lo = left;
+        }
+    }
+}
