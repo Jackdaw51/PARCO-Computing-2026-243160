@@ -10,6 +10,16 @@ typedef struct
     double *values;
 } SpCoord;
 
+double compute_avg_time(double times[], unsigned n)
+{
+    double sum = 0.0;
+    for (unsigned i = n/4; i < n; i++)
+    {
+        sum += times[i];
+    }
+    return sum / (n - n/4);
+}
+
 double *generate_random_vector(unsigned size)
 {
     double *vector = (double *)malloc(size * sizeof(double));
@@ -24,9 +34,21 @@ double *generate_random_vector(unsigned size)
 
 void *multiply_CSR_SpCoord(double *result, SpCoord *csr_matrix, double *vector)
 {
+#if defined(FOR) && THREAD_NUMBER != 1
+    printf("Parallel region started with threads: %d\n", omp_get_max_threads());
+#pragma omp parallel for
+#endif
+#if defined(STATIC) && CHUNKSIZE
+#pragma omp parallel for schedule(static, CHUNKSIZE)
+#endif
+#if defined(DYNAMIC) && CHUNKSIZE
+#pragma omp parallel for schedule(dynamic, CHUNKSIZE)
+#endif
+#if defined(GUIDED) && CHUNKSIZE
+#pragma omp parallel for schedule(guided, CHUNKSIZE)
+#endif
     for (unsigned row = 0; row < csr_matrix->n_rows - 1; row++)
     {
-        result[row] = 0.0;
         for (unsigned idx = csr_matrix->row_indices[row]; idx < csr_matrix->row_indices[row + 1]; idx++)
         {
             unsigned col = csr_matrix->col_indices[idx];
