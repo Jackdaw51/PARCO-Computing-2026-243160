@@ -3,7 +3,7 @@
 mtx_arr=$(ls mtxs/*.mtx)
 
 for MATRIX in $mtx_arr; do
-    for THREADS in 1 8 16 32 64; do
+    for THREADS in 1 8 16 32 64 96; do
         for SCHEDULING in FOR STATIC DYNAMIC GUIDED; do
             if [ "$SCHEDULING" != "FOR" ]; then
                 for CSIZE in 1 10 100 1000; do
@@ -19,3 +19,5 @@ for MATRIX in $mtx_arr; do
         done
     done
 done
+
+
