@@ -32,11 +32,11 @@ for mtx in row_size:
             times = []
             for tn in thread_numbers:
                 if ty == "FOR" and tn == 1 :
-                    filename = f"output/{tn}_11949.bgn"
+                    filename = f"output/{tn}_{mtx}.bgn"
                 elif ty == "FOR" and tn > 1:
-                    filename = f"output/{tn}_11949_{ty}.bgn"
+                    filename = f"output/{tn}_{mtx}_{ty}.bgn"
                 else:                
-                    filename = f"output/{tn}_11949_{ty}_{cs}.bgn"
+                    filename = f"output/{tn}_{mtx}_{ty}_{cs}.bgn"
                 try:
                     with open(filename, "r") as f:
                         content = f.read()
@@ -45,31 +45,24 @@ for mtx in row_size:
                     times.append(np.nan)
                     continue
 
-                # extract first floating number (e.g. "Time taken ...: 123.45 ms")
+                # extract floating number (e.g. "123.45 ms")
                 m = re.search(r'([-+]?\d*\.\d+|\d+)', content)
                 if m:
-                    try:
-                        times.append(float(m.group(0)))
-                        continue
-                    except ValueError:
-                        pass
-
-                # fallback: try last non-empty line as a number
-                lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
-                if lines:
-                    try:
-                        times.append(float(lines[-1]))
-                    except ValueError:
-                        print(f"Warning: could not parse numeric time in {filename}; inserting NaN")
-                        times.append(np.nan)
+                    time_ms = float(m.group(0))
+                    times.append(time_ms)
                 else:
-                    print(f"Warning: {filename} is empty; inserting NaN")
+                    print(f"Warning: No time found in {filename}; inserting NaN")
                     times.append(np.nan)
 
-            # scatter once per chunk size so each chunk gets its own color/legend entry
             if ty == "FOR":
                 plt.scatter(thread_numbers, times, s=100)
                 continue
+            # scatter once per chunk size so each chunk gets its own color/legend entry 
+            print(mtx)
+            print(ty)
+            print(cs)
+            print(thread_numbers)
+            print(times)
             plt.scatter(thread_numbers, times, label=f"chunk={cs}", s=100)
         plt.xlabel("Number of Threads")
         plt.ylabel("Time (ms)")
