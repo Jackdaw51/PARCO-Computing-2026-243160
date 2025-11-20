@@ -8,6 +8,8 @@ typedef struct
     unsigned *row_indices;
     unsigned *col_indices;
     double *values;
+    unsigned *perm;
+    unsigned *inv_perm;
 } SpCoord;
 
 double compute_avg_time(double times[], unsigned n)

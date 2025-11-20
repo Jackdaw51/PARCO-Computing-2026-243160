@@ -5,6 +5,7 @@
 #include "mmio.h"
 #include "mmio.c"
 #include "helpers.c"
+#include "permutation.c"
 
 #define NUMBEROFITERATIONS 20
 
