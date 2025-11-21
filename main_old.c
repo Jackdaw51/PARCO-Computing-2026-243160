@@ -4,7 +4,7 @@
 #include <omp.h>
 #include "mmio.h"
 #include "mmio.c"
-#include "helpers.c"
+#include "helpers.h"
 
 #define NUMBEROFITERATIONS 20
 
@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     srand(time(NULL));
     int ret_code, i;
     MM_typecode matcode;
-    SpCoord matrix;
+    SpCOO matrix;
     double *vec, *result;
     FILE *f;
     double times[NUMBEROFITERATIONS];

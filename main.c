@@ -4,7 +4,7 @@
 #include <omp.h>
 #include "mmio.h"
 #include "mmio.c"
-#include "helpers.c"
+#include "helpers.h"
 #include "permutation.c"
 
 #define NUMBEROFITERATIONS 20
@@ -12,13 +12,15 @@
 #ifndef THREAD_NUMBER
 #define THREAD_NUMBER 4
 #endif
+#define CHUNKSIZE 1
+#define STATIC
 
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
     int ret_code, i;
     MM_typecode matcode;
-    SpCoord matrix;
+    SpCOO matrix;
     double *vec, *result;
     FILE *f;
     double times[NUMBEROFITERATIONS];
@@ -63,6 +65,8 @@ int main(int argc, char *argv[])
     matrix.row_indices = (int *)malloc(matrix.n_nonzero * sizeof(int));
     matrix.col_indices = (int *)malloc(matrix.n_nonzero * sizeof(int));
     matrix.values = (double *)malloc(matrix.n_nonzero * sizeof(double));
+    matrix.perm = (int *)malloc(matrix.n_rows * sizeof(int));
+    matrix.inv_perm = (int *)malloc(matrix.n_rows * sizeof(int));
 
     result = (double *)calloc(matrix.n_cols, sizeof(double));
     vec = generate_random_vector(matrix.n_cols);
@@ -78,26 +82,20 @@ int main(int argc, char *argv[])
         matrix.row_indices[i]--; /* adjust from 1-based to 0-based */
         matrix.col_indices[i]--;
     }
+    double start_perm_time, end_perm_time, start_time, end_time, elapsed_ms;
 
     coo_quicksort(&matrix, 0, matrix.n_nonzero);
+
+    start_perm_time = omp_get_wtime();
+    build_perm_by_nnz(&matrix);
+    row_perm(&matrix);
+    coo_quicksort(&matrix, 0, matrix.n_nonzero);
+    end_perm_time = omp_get_wtime();
     convert_to_CSR(&matrix);
 
-    double start_time, end_time, elapsed_ms;
     char filename[256];
-    sprintf(filename, "output/1_%d.bgn", matrix.n_rows);
+    sprintf(filename, "output_my_impl/%d_%d.bgn", omp_get_max_threads(), matrix.n_rows);
 
-#if defined(FOR) && THREAD_NUMBER != 1
-    sprintf(filename, "output/%d_%d_%s.bgn", omp_get_max_threads(), matrix.n_rows, "FOR");
-#endif
-#if defined(STATIC) && CHUNKSIZE
-    sprintf(filename, "output/%d_%d_%s_%d.bgn", omp_get_max_threads(), matrix.n_rows, "STATIC", CHUNKSIZE);
-#endif
-#if defined(DYNAMIC) && CHUNKSIZE
-    sprintf(filename, "output/%d_%d_%s_%d.bgn", omp_get_max_threads(), matrix.n_rows, "DYNAMIC", CHUNKSIZE);
-#endif
-#if defined(GUIDED) && CHUNKSIZE
-    sprintf(filename, "output/%d_%d_%s_%d.bgn", omp_get_max_threads(), matrix.n_rows, "GUIDED", CHUNKSIZE);
-#endif
     FILE *a = fopen(filename, "w");
     if (a == NULL)
     {
@@ -113,6 +111,17 @@ int main(int argc, char *argv[])
         elapsed_ms = (end_time - start_time) * 1000.0;
         times[i] = elapsed_ms;
     }
+
+    double start_inv_perm_time = omp_get_wtime();
+    convert_to_COO(&matrix);
+    row_inv_perm(&matrix);
+    double end_inv_perm_time = omp_get_wtime();
+    double offset = (end_inv_perm_time + end_perm_time - start_inv_perm_time - start_perm_time) * 1000;
+    for (unsigned i = 0; i < NUMBEROFITERATIONS; i++)
+    {
+        times[i] += offset;
+    }
+
     fprintf(a, "%f\n", compute_avg_time(times, NUMBEROFITERATIONS));
     printf("Wrote results to file %s\n", filename);
     fclose(a);

@@ -1,25 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-typedef struct
-{
-    unsigned n_rows;
-    unsigned n_cols;
-    unsigned n_nonzero;
-    unsigned *row_indices;
-    unsigned *col_indices;
-    double *values;
-    unsigned *perm;
-    unsigned *inv_perm;
-} SpCoord;
+#include "helpers.h"
 
 double compute_avg_time(double times[], unsigned n)
 {
     double sum = 0.0;
-    for (unsigned i = n/4; i < n; i++)
+    for (unsigned i = n / 4; i < n; i++)
     {
         sum += times[i];
     }
-    return sum / (n - n/4);
+    return sum / (n - n / 4);
 }
 
 double *generate_random_vector(unsigned size)
@@ -34,7 +24,7 @@ double *generate_random_vector(unsigned size)
     return vector;
 }
 
-void *multiply_CSR_SpCoord(double *result, SpCoord *csr_matrix, double *vector)
+void *multiply_CSR_SpCoord(double *result, SpCOO *csr_matrix, double *vector)
 {
 #if defined(FOR) && THREAD_NUMBER != 1
     printf("Parallel region started with threads: %d\n", omp_get_max_threads());
@@ -60,7 +50,7 @@ void *multiply_CSR_SpCoord(double *result, SpCoord *csr_matrix, double *vector)
     }
 }
 
-void *convert_to_CSR(SpCoord *matrix)
+void *convert_to_CSR(SpCOO *matrix)
 {
     int *row_ptr = (int *)calloc(matrix->n_rows + 1, sizeof(int));
     if (!row_ptr)
@@ -83,7 +73,26 @@ void *convert_to_CSR(SpCoord *matrix)
     matrix->row_indices = row_ptr;
     // Now row_ptr[i] is the index in COO arrays where row i starts
 }
-int coo_less(SpCoord *p, unsigned a, unsigned b)
+// Convert CSR back to COO
+void *convert_to_COO(SpCOO *matrix)
+{
+    int *row_indices = (int *)malloc(matrix->n_nonzero * sizeof(int));
+    if (!row_indices)
+        return NULL;
+
+    for (int i = 0; i < matrix->n_rows - 1; i++)
+    {
+        for (int j = matrix->row_indices[i]; j < matrix->row_indices[i + 1]; j++)
+        {
+            row_indices[j] = i;
+        }
+    }
+
+    free(matrix->row_indices);
+    matrix->n_rows = matrix->n_rows - 1;
+    matrix->row_indices = row_indices;
+}
+int coo_less(SpCOO *p, unsigned a, unsigned b)
 {
     unsigned ra = p->row_indices[a], rb = p->row_indices[b];
     if (ra < rb)
@@ -93,7 +102,7 @@ int coo_less(SpCoord *p, unsigned a, unsigned b)
     return p->col_indices[a] < p->col_indices[b];
 }
 
-void swap(SpCoord *p, unsigned a, unsigned b)
+void swap(SpCOO *p, unsigned a, unsigned b)
 {
     unsigned i, j;
     double x;
@@ -109,7 +118,7 @@ void swap(SpCoord *p, unsigned a, unsigned b)
 }
 
 /* Lexicographic quicksort by (row, col) */
-void coo_quicksort(SpCoord *p, unsigned base, unsigned n)
+void coo_quicksort(SpCOO *p, unsigned base, unsigned n)
 {
     unsigned lo, hi, left, right, mid;
 
