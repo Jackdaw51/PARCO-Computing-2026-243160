@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < matrix.n_nonzero; i++)
     {
-        fscanf(f, "%d %d %lg\n", &matrix.row_indices[i], &matrix.col_indices[i], &matrix.values[i]);
+        // fscanf(f, "%d %d %lg\n", &matrix.row_indices[i], &matrix.col_indices[i], &matrix.values[i]);
         matrix.row_indices[i]--; /* adjust from 1-based to 0-based */
         matrix.col_indices[i]--;
     }
