@@ -9,6 +9,7 @@
 
 #define NUMBEROFITERATIONS 20
 
+
 #ifndef THREAD_NUMBER
 #define THREAD_NUMBER 4
 #endif
@@ -74,7 +75,11 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < matrix.n_nonzero; i++)
     {
-        
+        if (fscanf(f, "%d %d %lg\n", &matrix.row_indices[i], &matrix.col_indices[i], &matrix.values[i]) != 3)
+        {
+            printf("Error reading matrix data\n");
+            exit(1);
+        }
         matrix.row_indices[i]--; /* adjust from 1-based to 0-based */
         matrix.col_indices[i]--;
     }

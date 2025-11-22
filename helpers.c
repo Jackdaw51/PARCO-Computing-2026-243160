@@ -61,6 +61,7 @@ void *convert_to_CSR(SpCOO *matrix)
     for (unsigned i = 0; i < matrix->n_nonzero; i++)
     {
         row_ptr[matrix->row_indices[i] + 1]++;
+        printf("Row %d count incremented to %d\n", matrix->row_indices[i], row_ptr[matrix->row_indices[i] + 1]);
     }
 
     // Sums to get the offset values
