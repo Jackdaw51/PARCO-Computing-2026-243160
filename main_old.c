@@ -83,6 +83,7 @@ int main(int argc, char *argv[])
 
     double start_time, end_time, elapsed_ms;
     char filename[256];
+    mkdir("output", 0777);
     sprintf(filename, "output/1_%d.bgn", matrix.n_rows);
 
 #if defined(FOR) && THREAD_NUMBER != 1

@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
     convert_to_CSR(&matrix);
 
     char filename[256];
+    mkdir("output_my_impl", 0777);
     sprintf(filename, "output_my_impl/%d_%d.bgn", omp_get_max_threads(), matrix.n_rows);
 
     FILE *a = fopen(filename, "w");
