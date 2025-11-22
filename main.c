@@ -116,13 +116,10 @@ int main(int argc, char *argv[])
     convert_to_COO(&matrix);
     row_inv_perm(&matrix);
     double end_inv_perm_time = omp_get_wtime();
-    double offset = (end_inv_perm_time + end_perm_time - start_inv_perm_time - start_perm_time) * 1000;
-    for (unsigned i = 0; i < NUMBEROFITERATIONS; i++)
-    {
-        times[i] += offset;
-    }
+    double offset1 = (end_perm_time - start_perm_time) * 1000;
+    double offset2 = (end_inv_perm_time - start_inv_perm_time) * 1000;
 
-    fprintf(a, "%f\n", compute_avg_time(times, NUMBEROFITERATIONS));
+    fprintf(a, "%f\n%f\n%f\n", compute_avg_time(times, NUMBEROFITERATIONS), offset1, offset2);
     printf("Wrote results to file %s\n", filename);
     fclose(a);
 
