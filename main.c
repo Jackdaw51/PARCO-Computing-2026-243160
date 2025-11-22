@@ -82,15 +82,17 @@ int main(int argc, char *argv[])
         matrix.row_indices[i]--; /* adjust from 1-based to 0-based */
         matrix.col_indices[i]--;
     }
-    double start_perm_time, end_perm_time, start_time, end_time, elapsed_ms;
+    double start_perm_time, end_perm_time, start_time, end_time, start_sorting, end_sorting, elapsed_ms;
 
     coo_quicksort(&matrix, 0, matrix.n_nonzero);
 
     start_perm_time = omp_get_wtime();
-    build_perm_by_nnz(&matrix);
-    row_perm(&matrix);
-    coo_quicksort(&matrix, 0, matrix.n_nonzero);
+    build_perm_by_nnz(&matrix); // 2.71
+    row_perm(&matrix);          // 0.061
     end_perm_time = omp_get_wtime();
+    start_sorting = omp_get_wtime();
+    coo_quicksort(&matrix, 0, matrix.n_nonzero); // 5.51
+    end_sorting = omp_get_wtime();
     convert_to_CSR(&matrix);
 
     char filename[256];
@@ -116,10 +118,11 @@ int main(int argc, char *argv[])
     convert_to_COO(&matrix);
     row_inv_perm(&matrix);
     double end_inv_perm_time = omp_get_wtime();
-    double offset1 = (end_perm_time - start_perm_time) * 1000;
-    double offset2 = (end_inv_perm_time - start_inv_perm_time) * 1000;
+    double perm_time = (end_perm_time - start_perm_time) * 1000;
+    double inv_perm_time = (end_inv_perm_time - start_inv_perm_time) * 1000;
+    double sorting_time = (end_sorting - start_sorting) * 1000;
 
-    fprintf(a, "%f\n%f\n%f\n", compute_avg_time(times, NUMBEROFITERATIONS), offset1, offset2);
+    fprintf(a, "%f\n%f\n%f\n%f\n", compute_avg_time(times, NUMBEROFITERATIONS), perm_time, sorting_time, inv_perm_time);
     printf("Wrote results to file %s\n", filename);
     fclose(a);
 
