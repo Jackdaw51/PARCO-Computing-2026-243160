@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <omp.h>
+#include <sys/stat.h>
 #include "mmio.h"
 #include "mmio.c"
 #include "helpers.h"
