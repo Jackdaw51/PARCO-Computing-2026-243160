@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 #include "helpers.h"
 
 double compute_avg_time(double times[], unsigned n)
