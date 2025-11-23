@@ -57,13 +57,11 @@ void *convert_to_CSR(SpCOO *matrix)
     if (!row_ptr)
         return NULL;
 
-    // Count non-zeros per row
     for (unsigned i = 0; i < matrix->n_nonzero; i++)
     {
         row_ptr[matrix->row_indices[i] + 1]++;
     }
 
-    // Sums to get the offset values
     for (int i = 0; i < matrix->n_rows; i++)
     {
         row_ptr[i + 1] += row_ptr[i];

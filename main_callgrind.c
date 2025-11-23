@@ -107,6 +107,7 @@ int main(int argc, char *argv[])
         printf("Error opening file %s for writing\n", filename);
         exit(1);
     }
+    CALLGRIND_START_INSTRUMENTATION;
     for (unsigned i = 0; i < NUMBEROFITERATIONS; i++)
     {
         start_time = omp_get_wtime();
@@ -115,7 +116,7 @@ int main(int argc, char *argv[])
         elapsed_ms = (end_time - start_time) * 1000.0;
         times[i] = elapsed_ms;
     }
-
+    CALLGRIND_STOP_INSTRUMENTATION;
     double start_inv_perm_time = omp_get_wtime();
     convert_to_COO(&matrix);
     row_inv_perm(&matrix);
@@ -124,7 +125,7 @@ int main(int argc, char *argv[])
     double inv_perm_time = (end_inv_perm_time - start_inv_perm_time) * 1000;
     double sorting_time = (end_sorting - start_sorting) * 1000;
 
-    fprintf(a, "%f\n%f\n%f\n%f\n", compute_avg_time(times, NUMBEROFITERATIONS), perm_time, sorting_time, inv_perm_time);
+    // fprintf(a, "%f\n%f\n%f\n%f\n", compute_avg_time(times, NUMBEROFITERATIONS), perm_time, sorting_time, inv_perm_time);
     printf("Wrote results to file %s\n", filename);
     fclose(a);
 
