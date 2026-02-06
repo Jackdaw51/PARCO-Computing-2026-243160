@@ -5,6 +5,28 @@ extern GhostComm ghost;
 extern FILE *f;
 MM_typecode matcode;
 
+void generate_synthetic_matrix(SpCOO *matrix, int world_size)
+{
+    // Weak scaling: Size grows with processors.
+    int nnz_per_row = 100; // keeps work per processor constant as we scale even though the matrix density is not constant
+    matrix->n_rows = 10000 * world_size;
+    matrix->n_cols = 10000 * world_size;
+    matrix->n_nonzero = (int)matrix->n_rows * nnz_per_row;
+    matrix->row_indices = (int *)malloc(matrix->n_nonzero * sizeof(int));
+    matrix->col_indices = (int *)malloc(matrix->n_nonzero * sizeof(int));
+    matrix->values = (double *)malloc(matrix->n_nonzero * sizeof(double));
+    for (int i = 0; i < matrix->n_rows; i++)
+    {
+        for (int j = 0; j < nnz_per_row; j++)
+        {
+            int idx = i * nnz_per_row + j;
+            matrix->row_indices[idx] = i;
+            matrix->col_indices[idx] = (rand() % matrix->n_cols); // random column index
+            matrix->values[idx] = (double)(rand() % 100) / 10.0;  // random value
+        }
+    }
+}
+
 void verify_result(SpCOO *matrix, double *input_vector, double *mpi_result, int rank)
 {
     if (rank != 0)
@@ -237,7 +259,7 @@ void prepare_ghost_communication(int local_nnz, int *rows, int *cols, int my_vec
     // Exchange coutns
     MPI_Alltoall(ghost.recv_counts, 1, MPI_INT, ghost.send_counts, 1, MPI_INT, MPI_COMM_WORLD);
 
-    // Exchange Lists 
+    // Exchange Lists
     int *s_disp = (int *)calloc(world_size, sizeof(int));
     int *r_disp = (int *)calloc(world_size, sizeof(int));
     int total_req_send = 0;
@@ -274,7 +296,7 @@ void prepare_ghost_communication(int local_nnz, int *rows, int *cols, int my_vec
     MPI_Alltoallv(flat_requests, ghost.recv_counts, s_disp, MPI_INT,
                   ghost.items_to_send, ghost.send_counts, r_disp, MPI_INT, MPI_COMM_WORLD);
 
-    // requested global indices -> local indices 
+    // requested global indices -> local indices
     for (int i = 0; i < total_req_recv; i++)
         ghost.items_to_send[i] -= my_vec_start;
 
@@ -321,7 +343,7 @@ int setup(int argc, char *argv[])
         MPI_Finalize();
         return -1;
     }
-    if (rank == 0 && (f = fopen(argv[1], "r")) == NULL)
+    if (rank == 0 && strcmp(argv[1], "WEAK") != 0 && (f = fopen(argv[1], "r")) == NULL)
     {
         printf("Could not open file.\n");
         MPI_Finalize();

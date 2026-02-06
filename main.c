@@ -21,17 +21,28 @@ int main(int argc, char *argv[])
     int *ordered_rows = NULL, *ordered_cols = NULL;
     double *ordered_values = NULL;
 
+    int is_weak_scaling = (strcmp(argv[1], "WEAK") == 0);
+
     // INPUT & SCATTER SETUP
     if (rank == 0)
     {
-        start_time = MPI_Wtime();
-        snprintf(matrix_name, sizeof(matrix_name), "%s", argv[1]);
-        printf("Matrix name: %s\n", matrix_name);
-        matrix_initialize(&matrix);
+        if (is_weak_scaling)
+        {
+            printf("Weak scaling mode. Matrix size: %d\n", world_size);
+            generate_synthetic_matrix(&matrix, world_size);
+        }
+        else
+        {
+            snprintf(matrix_name, sizeof(matrix_name), "%s", argv[1]);
+            printf("Matrix name: %s\n", matrix_name);
+            matrix_initialize(&matrix);
+        }
         owner_and_count_initialize(&matrix, &send_counts, &displacement);
 
         randomly_fill_vector(&global_vector, matrix.n_cols);
         data_reorder(&matrix, displacement, &ordered_rows, &ordered_cols, &ordered_values);
+
+        start_time = MPI_Wtime();
     }
 
     // SCATTER MATRIX DATA
@@ -161,7 +172,7 @@ int main(int argc, char *argv[])
         }
         y_local[i] += sum;
     }
-    // GATHER RESULTS 
+    // GATHER RESULTS
 
     double *y_packed = NULL;
     int *recv_cnts = NULL, *displs = NULL;
@@ -199,7 +210,6 @@ int main(int argc, char *argv[])
         }
 
         end_time = MPI_Wtime();
-        printf("Time taken: %f milli seconds\n", (end_time - start_time) * 1000);
 
 #if defined(CHECK_RESULTS) && CHECK_RESULTS == 1
         verify_result(&matrix, global_vector, y_final, rank);
@@ -219,6 +229,37 @@ int main(int argc, char *argv[])
         free(send_counts);
         free(displacement);
         free(global_vector);
+    }
+    // PERFORMANCE METRICS
+    long local_nnz_long = local_nnz;
+    long min_nnz, max_nnz, sum_nnz;
+
+    // 1. Load Balance (NNZ)
+    MPI_Reduce(&local_nnz_long, &min_nnz, 1, MPI_LONG, MPI_MIN, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&local_nnz_long, &max_nnz, 1, MPI_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&local_nnz_long, &sum_nnz, 1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    // 2. Communication Volume (Bytes)
+    // 8 bytes per double. Ghost data received + Sent.
+    long local_comm_vol = (ghost.num_ghosts + ghost.total_send) * 8;
+    long total_comm_vol;
+    MPI_Reduce(&local_comm_vol, &total_comm_vol, 1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    if (rank == 0)
+    {
+        double time_sec = end_time - start_time;
+        double gflops = (2.0 * sum_nnz) / (time_sec * 1e9);
+        double bw_gbs = (total_comm_vol / (1024.0 * 1024.0 * 1024.0)) / time_sec;
+
+        printf("csv, %d, %f, %f, %ld, %ld, %ld, %f\n",
+               world_size, time_sec * 1000, gflops, min_nnz, max_nnz, total_comm_vol, bw_gbs);
+
+        // printf("Ranks: %d\n", world_size);
+        // printf("Time: %f s\n", time_sec);
+        // printf("GFLOPs: %f\n", gflops);
+        // printf("Load Balance (NNZ): Min=%ld, Max=%ld (Imbalance: %.2f%%)\n",
+        //        min_nnz, max_nnz, ((double)max_nnz / min_nnz - 1.0) * 100);
+        // printf("Total Comm Volume: %.2f GB\n", total_comm_vol / (1024.0 * 1024.0 * 1024.0));
     }
 
     free(y_local);
