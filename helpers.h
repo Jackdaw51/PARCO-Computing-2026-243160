@@ -47,5 +47,5 @@ void coo2csr(int n_local_rows, int n_nnz, int *coo_rows, int *coo_cols, double *
 void randomly_fill_vector(double **vec, int size);
 void scatter_initial_vector(double **my_vector, int my_vec_count, int base, int rem, double *global_vector);
 void verify_result(SpCOO *matrix, double *input_vector, double *mpi_result, int rank);
-
+void generate_synthetic_matrix(SpCOO *matrix, int world_size);
 #endif
