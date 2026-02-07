@@ -83,9 +83,9 @@ for r in $RANKS_LIST; do
     
     awk -v r="$r" -F',' '
         {
-            sum_time += $4;
-            sum_gflops += $5;
-            sum_comm += $6;
+            sum_time += $3;
+            sum_gflops += $4;
+            sum_comm += $7;
             count++;
         }
         END {
