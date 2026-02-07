@@ -36,7 +36,7 @@ run_and_average() {
     rm -f raw_data.tmp
     
     for ((i=1; i<=REPEATS; i++)); do
-        mpirun --map-by node --bind-to core -np $ranks ./spmv "$arg" | grep "csv," >> raw_data.tmp
+        mpirun -np $ranks ./spmv "$arg" | grep "csv," >> raw_data.tmp
     done
     
     # Use AWK to calculate averages
@@ -79,7 +79,7 @@ for r in $RANKS_LIST; do
     rm -f raw_data.tmp
     
     for ((i=1; i<=REPEATS; i++)); do
-        mpirun --map-by node --bind-to core -np $r ./spmv "WEAK" | grep "csv," >> raw_data.tmp
+        mpirun -np $r ./spmv "WEAK" | grep "csv," >> raw_data.tmp
     done
     
     awk -v r="$r" -F',' '
