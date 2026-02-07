@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "deliverable_1/mmio.h" 
+#include <time.h>
 #ifndef HELPERS_H
 #define HELPERS_H
 typedef struct

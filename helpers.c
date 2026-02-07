@@ -100,7 +100,6 @@ void scatter_initial_vector(double **my_vector, int my_vec_count, int base, int 
 }
 void randomly_fill_vector(double **vec, int size)
 {
-    srand((unsigned int)(time(NULL)) + rank);
     *vec = (double *)malloc(size * sizeof(double));
 
     for (int i = 0; i < size; i++)

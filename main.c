@@ -11,6 +11,7 @@ GhostComm ghost;
 
 int main(int argc, char *argv[])
 {
+    srand(time(NULL) + rank); 
     double start_time, end_time;
     double *global_vector = NULL;
 
