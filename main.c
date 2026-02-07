@@ -11,7 +11,7 @@ GhostComm ghost;
 
 int main(int argc, char *argv[])
 {
-    srand(time(NULL) + rank); 
+    srand(time(NULL) + rank);
     double start_time, end_time;
     double *global_vector = NULL;
 
@@ -42,8 +42,6 @@ int main(int argc, char *argv[])
 
         randomly_fill_vector(&global_vector, matrix.n_cols);
         data_reorder(&matrix, displacement, &ordered_rows, &ordered_cols, &ordered_values);
-
-        start_time = MPI_Wtime();
     }
 
     // SCATTER MATRIX DATA
@@ -121,6 +119,10 @@ int main(int argc, char *argv[])
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0)
+        start_time = MPI_Wtime();
+
     memcpy(combined_vector, my_vector, my_vec_count * sizeof(double));
 
     // OVERLAPPED EXECUTION LOOP
@@ -173,6 +175,10 @@ int main(int argc, char *argv[])
         }
         y_local[i] += sum;
     }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0)
+        end_time = MPI_Wtime();
     // GATHER RESULTS
 
     double *y_packed = NULL;
@@ -210,7 +216,6 @@ int main(int argc, char *argv[])
             cur_off[owner]++;
         }
 
-        end_time = MPI_Wtime();
 
 #if defined(CHECK_RESULTS) && CHECK_RESULTS == 1
         verify_result(&matrix, global_vector, y_final, rank);
