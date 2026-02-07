@@ -1,0 +1,102 @@
+#!/bin/bash
+#PBS -N SpMV_Benchmark
+#PBS -l select=4:ncpus=18:mpiprocs=18:mem=32gb
+#PBS -l walltime==6:00:00
+#PBS -q short_cpuQ         
+#PBS -o output_benchmark.txt
+#PBS -e error_benchmark.txt
+
+cd PARCO-Computing-2026-243160
+
+# Load MPI
+module load gcc91
+module load mpich-3.2.1--gcc-9.1.0
+
+echo "Compiling..."
+mpicc -O3 -march=native main.c helpers.c deliverable_1/mmio.c -o spmv
+if [ $? -ne 0 ]; then
+    echo "Compilation Failed!"
+    exit 1
+fi
+
+# Ranks to test (Up to 72)
+RANKS_LIST="1 2 4 8 16 32 64 72"
+REPEATS=10
+OUTPUT_FILE="results_averaged.csv"
+
+echo "Dataset,Type,Ranks,AvgTime,AvgGFLOPS,AvgCommBytes" > $OUTPUT_FILE
+
+run_and_average() {
+    local ranks=$1
+    local arg=$2
+    local name=$3
+    
+    echo "Benchmarking $name on $ranks ranks (Averaging $REPEATS runs)..."
+    
+    rm -f raw_data.tmp
+    
+    for ((i=1; i<=REPEATS; i++)); do
+        mpirun --map-by node --bind-to core -np $ranks ./spmv "$arg" | grep "csv," >> raw_data.tmp
+    done
+    
+    # Use AWK to calculate averages
+    awk -v name="$name" -v r="$ranks" -v type="Strong" -F',' '
+        {
+            sum_time += $4;
+            sum_gflops += $5;
+            sum_comm += $6;
+            count++;
+        }
+        END {
+            if (count > 0) {
+                avg_time = sum_time / count;
+                avg_gflops = sum_gflops / count;
+                avg_comm = sum_comm / count;
+                # Print format: Dataset,Type,Ranks,Time,GFLOPS,Comm
+                printf "%s,%s,%d,%.6f,%.2f,%.0f\n", name, type, r, avg_time, avg_gflops, avg_comm;
+            }
+        }
+    ' raw_data.tmp >> $OUTPUT_FILE
+}
+
+# STRONG SCALING (Real Matrices)
+echo "--- Starting Strong Scaling ---"
+
+for matrix in mtxs/*.mtx; do
+    matrix_name=$(basename "$matrix")
+    for r in $RANKS_LIST; do
+        run_and_average $r "$matrix" "$matrix_name"
+    done
+done
+
+# PART B: WEAK SCALING (Synthetic)
+echo "--- Starting Weak Scaling ---"
+
+for r in $RANKS_LIST; do
+    # Re-using the function but overriding the "Type" in the awk slightly different
+    
+    echo "Benchmarking Synthetic on $r ranks..."
+    rm -f raw_data.tmp
+    
+    for ((i=1; i<=REPEATS; i++)); do
+        mpirun --map-by node --bind-to core -np $r ./spmv "WEAK" | grep "csv," >> raw_data.tmp
+    done
+    
+    awk -v r="$r" -F',' '
+        {
+            sum_time += $4;
+            sum_gflops += $5;
+            sum_comm += $6;
+            count++;
+        }
+        END {
+            if (count > 0) {
+                printf "Synthetic,Weak,%d,%.6f,%.2f,%.0f\n", r, sum_time/count, sum_gflops/count, sum_comm/count;
+            }
+        }
+    ' raw_data.tmp >> $OUTPUT_FILE
+
+done
+
+echo "Benchmark Finished. Averaged results saved to $OUTPUT_FILE"
+rm -f raw_data.tmp
