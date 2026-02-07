@@ -52,7 +52,7 @@ run_and_average() {
                 avg_gflops = sum_gflops / count;
                 avg_comm = sum_comm / count;
                 # Print format: Dataset,Type,Ranks,Time,GFLOPS,Comm
-                printf "%s,%s,%d,%.6f,%.2f,%.0f\n", name, type, r, avg_time, avg_gflops, avg_comm;
+                printf "%s,%s,%d,%.6f,%.4f,%.0f\n", name, type, r, avg_time, avg_gflops, avg_comm;
             }
         }
     ' raw_data.tmp >> $OUTPUT_FILE
