@@ -39,12 +39,11 @@ run_and_average() {
         mpirun -np $ranks ./spmv "$arg" | grep "csv," >> raw_data.tmp
     done
     
-    # Use AWK to calculate averages
     awk -v name="$name" -v r="$ranks" -v type="Strong" -F',' '
         {
-            sum_time += $4;
-            sum_gflops += $5;
-            sum_comm += $6;
+            sum_time += $3;
+            sum_gflops += $4;
+            sum_comm += $7;
             count++;
         }
         END {
