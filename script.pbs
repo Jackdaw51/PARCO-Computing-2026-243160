@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -N SpMV_Benchmark
-#PBS -l select=4:ncpus=18:mpiprocs=18:mem=32gb
+#PBS -l select=4:ncpus=18:mpiprocs=72:mem=32gb
 #PBS -l walltime=6:00:00
 #PBS -q short_cpuQ         
 #PBS -o output_benchmark.txt
