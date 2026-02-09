@@ -24,7 +24,7 @@ RANKS_LIST="1 2 4 8 16 32 64 72"
 REPEATS=10
 OUTPUT_FILE="results_averaged.csv"
 
-echo "Dataset,Type,Ranks,AvgTime,AvgGFLOPS,AvgCommBytes" > $OUTPUT_FILE
+echo "Dataset,Type,Ranks,AvgTime,AvgGFLOPS,AvgCommBytes,MinNNZ,MaxNNZ" > $OUTPUT_FILE
 
 run_and_average() {
     local ranks=$1
