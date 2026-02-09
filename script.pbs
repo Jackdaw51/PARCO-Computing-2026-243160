@@ -43,6 +43,8 @@ run_and_average() {
         {
             sum_time += $3;
             sum_gflops += $4;
+            sum_min_nnz += $5;
+            sum_max_nnz += $6;
             sum_comm += $7;
             count++;
         }
@@ -51,8 +53,10 @@ run_and_average() {
                 avg_time = sum_time / count;
                 avg_gflops = sum_gflops / count;
                 avg_comm = sum_comm / count;
-                # Print format: Dataset,Type,Ranks,Time,GFLOPS,Comm
-                printf "%s,%s,%d,%.6f,%.4f,%.0f\n", name, type, r, avg_time, avg_gflops, avg_comm;
+                avg_min = sum_min_nnz / count;
+                avg_max = sum_max_nnz / count;
+                # Print format: Dataset,Type,Ranks,Time,GFLOPS,Comm,MinNNZ,MaxNNZ
+                printf "%s,%s,%d,%.6f,%.4f,%.0f,%.0f,%.0f\n", name, type, r, avg_time, avg_gflops, avg_comm, avg_min, avg_max;
             }
         }
     ' raw_data.tmp >> $OUTPUT_FILE
@@ -85,12 +89,14 @@ for r in $RANKS_LIST; do
         {
             sum_time += $3;
             sum_gflops += $4;
+            sum_min_nnz += $5;
+            sum_max_nnz += $6;
             sum_comm += $7;
             count++;
         }
         END {
             if (count > 0) {
-                printf "Synthetic,Weak,%d,%.6f,%.2f,%.0f\n", r, sum_time/count, sum_gflops/count, sum_comm/count;
+                printf "Synthetic,Weak,%d,%.6f,%.2f,%.0f,%.0f,%.0f\n", r, sum_time/count, sum_gflops/count, sum_comm/count, sum_min_nnz/count, sum_max_nnz/count;
             }
         }
     ' raw_data.tmp >> $OUTPUT_FILE
